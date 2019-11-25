@@ -7,7 +7,6 @@ var GLOBAL_VAR = {
     limit: "1000",
     requestParam: "",
     chartMgr: null,
-    G_HTTP_REQUEST: null,
     TimeOutId: null,
     button_down: false,
     init: false,
@@ -46,34 +45,34 @@ GLOBAL_VAR.tagMapPeriod = {
 var classId = 0;
 
 function create_class() {
-    var j = arguments.length;
-    var e = function () {
+    var length = arguments.length;
+    var func = function () {
     };
-    var d;
-    if (j) {
-        d = arguments[0];
-        for (var a in d.prototype) {
-            e.prototype[a] = d.prototype[a]
+    var argument;
+    if (length) {
+        argument = arguments[0];
+        for (var prototypeKey in argument.prototype) {
+            func.prototype[prototypeKey] = argument.prototype[prototypeKey]
         }
     }
-    for (var c = 1; c < j; c++) {
-        var b = arguments[c];
-        var g = b.prototype.__construct;
-        if (g) {
-            if (!e.prototype.__featureConstructors) {
-                e.prototype.__featureConstructors = []
+    for (var c = 1; c < length; c++) {
+        var argument1 = arguments[c];
+        var construct = argument1.prototype.__construct;
+        if (construct) {
+            if (!func.prototype.__featureConstructors) {
+                func.prototype.__featureConstructors = []
             }
-            e.prototype.__featureConstructors.push(g);
-            delete b.prototype.__construct
+            func.prototype.__featureConstructors.push(construct);
+            delete argument1.prototype.__construct
         }
-        for (var a in b.prototype) {
-            e.prototype[a] = b.prototype[a]
+        for (var prototypeKey1 in argument1.prototype) {
+            func.prototype[prototypeKey1] = argument1.prototype[prototypeKey1]
         }
-        if (g) {
-            b.prototype.__construct = g
+        if (construct) {
+            argument1.prototype.__construct = construct
         }
     }
-    var h = function () {
+    var func2 = function () {
         if (this.__construct) {
             this.__construct.apply(this, arguments)
         }
@@ -85,26 +84,26 @@ function create_class() {
             }
         }
     };
-    e.prototype.__classId = classId++;
-    if (d != undefined) {
-        h.__super = d.prototype;
-        e.prototype.__super = d
+    func.prototype.__classId = classId++;
+    if (argument != undefined) {
+        func2.__super = argument.prototype;
+        func.prototype.__super = argument
     }
-    h.prototype = new e();
-    return h
+    func2.prototype = new func();
+    return func2
 }
 
 function is_instance(c, a) {
-    var b = a.prototype.__classId;
-    if (c.__classId == b) {
+    var classId1 = a.prototype.__classId;
+    if (c.__classId == classId1) {
         return true
     }
-    var d = c.__super;
-    while (d != undefined) {
-        if (d.prototype.__classId == b) {
+    var super1 = c.__super;
+    while (super1 != undefined) {
+        if (super1.prototype.__classId == classId1) {
             return true
         }
-        d = d.prototype.__super
+        super1 = super1.prototype.__super
     }
     return false
 }
@@ -1450,22 +1449,29 @@ Chart.prototype.__construct = function () {
     };
     this._time = GLOBAL_VAR.time_type;
     this._market_from = GLOBAL_VAR.market_from;
-    this._usd_cny_rate = 6.1934;
+    this._usd_cny_rate = 6.9934;
     this._money_type = "USD";
     this._contract_unit = "BTC";
     this.strIsLine = false;
     this.strCurrentMarket = 20150403001;
     this.strCurrentMarketType = 1
 };
+
+/**
+ * 设置标题
+ */
 Chart.prototype.setTitle = function () {
     var b = ChartManager.getInstance().getLanguage();
-    var a = GLOBAL_VAR.market_from_name;
-    a += " ";
-    a += this.strIsLine ? Chart.strPeriod[b]["line"] : Chart.strPeriod[b][this._time];
-    a += (this._contract_unit + "/" + this._money_type).toUpperCase();
-    ChartManager.getInstance().setTitle("frame0.k0", a);
-    kline.title = a;
-    kline.setTitle()
+    console.log("data", GLOBAL_VAR.KLineData);
+    if (GLOBAL_VAR.KLineAllData != null && GLOBAL_VAR.KLineAllData.length > 0) {
+        var a = GLOBAL_VAR.KLineAllData[GLOBAL_VAR.KLineAllData.length - 1].close + " " + this._money_type.toUpperCase();
+        a += " ";
+        // a += this.strIsLine ? Chart.strPeriod[b]["line"] : Chart.strPeriod[b][this._time];
+        a += (this._contract_unit + "/" + this._money_type).toUpperCase();
+        ChartManager.getInstance().setTitle("frame0.k0", a);
+        kline.title = a;
+        kline.setTitle()
+    }
 };
 Chart.prototype.setCurrentList = function () {
 };
@@ -1482,10 +1488,10 @@ Chart.prototype.updateDataAndDisplay = function () {
     var a = GLOBAL_VAR.chartMgr.getDataSource("frame0.k0").getLastDate();
     if (a == -1) {
         GLOBAL_VAR.requestParam = setHttpRequestParam(GLOBAL_VAR.market_from, GLOBAL_VAR.time_type, GLOBAL_VAR.limit, null);
-        RequestData(true)
+        // RequestData(true)
     } else {
         GLOBAL_VAR.requestParam = setHttpRequestParam(GLOBAL_VAR.market_from, GLOBAL_VAR.time_type, null, a.toString());
-        RequestData()
+        // RequestData()
     }
     ChartManager.getInstance().redraw("All", false)
 };
@@ -1493,6 +1499,11 @@ Chart.prototype.setCurrentContractUnit = function (a) {
     this._contract_unit = a;
     this.updateDataAndDisplay()
 };
+
+/**
+ * 设置货币类型
+ * @param a 类型
+ */
 Chart.prototype.setCurrentMoneyType = function (a) {
     this._money_type = a;
     this.updateDataAndDisplay()
@@ -1505,31 +1516,36 @@ Chart.prototype.updateDataSource = function (a) {
     this._data = a;
     ChartManager.getInstance().updateData("frame0.k0", this._data)
 };
-Chart.prototype.updateDepth = function (d) {
-    if (d == null) {
+
+/**
+ * 更新深度
+ * @param depthData 深度数据
+ */
+Chart.prototype.updateDepth = function (depthData) {
+    if (depthData == null) {
         this._depthData.array = [];
         ChartManager.getInstance().redraw("All", false);
         return
     }
-    if (!d.asks || !d.bids || d.asks == "" || d.bids == "") {
+    if (!depthData.asks || !depthData.bids || depthData.asks == "" || depthData.bids == "") {
         return
     }
     var b = this._depthData;
     b.array = [];
-    for (var a = 0; a < d.asks.length; a++) {
+    for (var a = 0; a < depthData.asks.length; a++) {
         var c = {};
-        c.rate = d.asks[a][0];
-        c.amount = d.asks[a][1];
+        c.rate = depthData.asks[a][0];
+        c.amount = depthData.asks[a][1];
         b.array.push(c)
     }
-    for (var a = 0; a < d.bids.length; a++) {
+    for (var a = 0; a < depthData.bids.length; a++) {
         var c = {};
-        c.rate = d.bids[a][0];
-        c.amount = d.bids[a][1];
+        c.rate = depthData.bids[a][0];
+        c.amount = depthData.bids[a][1];
         b.array.push(c)
     }
-    b.asks_count = d.asks.length;
-    b.bids_count = d.bids.length;
+    b.asks_count = depthData.asks.length;
+    b.bids_count = depthData.bids.length;
     b.asks_si = b.asks_count - 1;
     b.asks_ei = 0;
     b.bids_si = b.asks_count;
@@ -1550,6 +1566,8 @@ Chart.prototype.updateDepth = function (d) {
     }
     ChartManager.getInstance().redraw("All", false)
 };
+
+
 Chart.prototype.setMainIndicator = function (a) {
     this._mainIndicator = a;
     if (a == "NONE") {
@@ -1559,6 +1577,12 @@ Chart.prototype.setMainIndicator = function (a) {
     }
     ChartManager.getInstance().redraw("All", true)
 };
+
+/**
+ * 设置技术指标选中
+ * @param b
+ * @param a
+ */
 Chart.prototype.setIndicator = function (b, a) {
     if (a == "NONE") {
         var b = 2;
@@ -1583,6 +1607,11 @@ Chart.prototype.setIndicator = function (b, a) {
     }
     ChartManager.getInstance().redraw("All", true)
 };
+
+/**
+ * 添加技术指标选中
+ * @param a
+ */
 Chart.prototype.addIndicator = function (a) {
     ChartManager.getInstance().addIndicator(a);
     ChartManager.getInstance().redraw("All", true)
@@ -2190,23 +2219,28 @@ TableLayout.prototype.layout = function (g, k, l, a, d) {
     }
     this.setChanged(false)
 };
-TableLayout.prototype.drawGrid = function (c) {
+
+/**
+ * 画网格
+ * @param pen
+ */
+TableLayout.prototype.drawGrid = function (pen) {
     if (this._areas.length < 1) {
         return
     }
-    var d = ChartManager.getInstance();
-    var e = d.getTheme(this.getFrameName());
-    c.fillStyle = e.getColor(Theme.Color.Grid1);
-    c.fillRect(this._areas[0].getRight(), this.getTop(), 1, this.getHeight());
-    var b, a = this._areas.length - 2;
-    for (b = 0; b < a; b += 2) {
-        c.fillRect(this.getLeft(), this._areas[b].getBottom(), this.getWidth(), 1)
+    var instance = ChartManager.getInstance();
+    var theme = instance.getTheme(this.getFrameName());
+    pen.fillStyle = theme.getColor(Theme.Color.Grid1);
+    pen.fillRect(this._areas[0].getRight(), this.getTop(), 1, this.getHeight());
+    var b, number = this._areas.length - 2;
+    for (b = 0; b < number; b += 2) {
+        pen.fillRect(this.getLeft(), this._areas[b].getBottom(), this.getWidth(), 1)
     }
-    if (!d.getCaptureMouseWheelDirectly()) {
-        for (b = 0, a += 2; b < a; b += 2) {
+    if (!instance.getCaptureMouseWheelDirectly()) {
+        for (b = 0, number += 2; b < number; b += 2) {
             if (this._areas[b].isSelected()) {
-                c.strokeStyle = e.getColor(Theme.Color.Indicator1);
-                c.strokeRect(this.getLeft() + 0.5, this.getTop() + 0.5, this.getWidth() - 1, this.getHeight() - 1);
+                pen.strokeStyle = theme.getColor(Theme.Color.Indicator1);
+                pen.strokeRect(this.getLeft() + 0.5, this.getTop() + 0.5, this.getWidth() - 1, this.getHeight() - 1);
                 break
             }
         }
@@ -2214,20 +2248,20 @@ TableLayout.prototype.drawGrid = function (c) {
 };
 TableLayout.prototype.highlight = function (c) {
     this._highlightedArea = null;
-    var d, b, a = this._areas.length;
-    for (b = 0; b < a; b++) {
-        d = this._areas[b];
-        if (d == c) {
-            b &= ~1;
-            d = this._areas[b];
-            d.highlight(d);
-            this._highlightedArea = d;
-            b++;
-            d = this._areas[b];
-            d.highlight(null);
-            d.highlight(d)
+    var area, i, length = this._areas.length;
+    for (i = 0; i < length; i++) {
+        area = this._areas[i];
+        if (area == c) {
+            i &= ~1;
+            area = this._areas[i];
+            area.highlight(area);
+            this._highlightedArea = area;
+            i++;
+            area = this._areas[i];
+            area.highlight(null);
+            area.highlight(area)
         } else {
-            d.highlight(null)
+            area.highlight(null)
         }
     }
     return this._highlightedArea != null ? this : null
@@ -2253,17 +2287,17 @@ TableLayout.prototype.select = function (c) {
 };
 TableLayout.prototype.onMouseMove = function (l, k) {
     if (this._focusedRowIndex >= 0) {
-        var m = this._areas[this._focusedRowIndex];
-        var e = this._areas[this._focusedRowIndex + 2];
+        var area = this._areas[this._focusedRowIndex];
+        var area1 = this._areas[this._focusedRowIndex + 2];
         var f = k - this._oldY;
         if (f == 0) {
             return this
         }
         var h = this._oldUpperBottom + f;
         var g = this._oldLowerTop + f;
-        if (h - m.getTop() >= 60 && e.getBottom() - g >= 60) {
-            m.setBottom(h);
-            e.setTop(g)
+        if (h - area.getTop() >= 60 && area1.getBottom() - g >= 60) {
+            area.setBottom(h);
+            area1.setTop(g)
         }
         return this
     }
@@ -2311,21 +2345,23 @@ var DockableLayout = create_class(ChartAreaGroup);
 DockableLayout.prototype.__construct = function (a) {
     DockableLayout.__super.__construct.call(this, a)
 };
+
+
 DockableLayout.prototype.measure = function (c, d, a) {
     DockableLayout.__super.measure.call(this, c, d, a);
     d = this.getMeasuredWidth();
     a = this.getMeasuredHeight();
     for (var b in this._areas) {
-        var e = this._areas[b];
-        e.measure(c, d, a);
-        switch (e.getDockStyle()) {
+        var area = this._areas[b];
+        area.measure(c, d, a);
+        switch (area.getDockStyle()) {
             case ChartArea.DockStyle.left:
             case ChartArea.DockStyle.Right:
-                d -= e.getMeasuredWidth();
+                d -= area.getMeasuredWidth();
                 break;
             case ChartArea.DockStyle.Top:
             case ChartArea.DockStyle.Bottom:
-                a -= e.getMeasuredHeight();
+                a -= area.getMeasuredHeight();
                 break;
             case ChartArea.DockStyle.Fill:
                 d = 0;
@@ -2334,78 +2370,84 @@ DockableLayout.prototype.measure = function (c, d, a) {
         }
     }
 };
-DockableLayout.prototype.layout = function (d, g, k, a, b) {
-    DockableLayout.__super.layout.call(this, d, g, k, a, b);
-    d = this.getLeft();
-    g = this.getTop();
-    k = this.getRight();
-    a = this.getBottom();
-    var j, f;
+DockableLayout.prototype.layout = function (left, top, right, bottom, b) {
+    DockableLayout.__super.layout.call(this, left, top, right, bottom, b);
+    left = this.getLeft();
+    top = this.getTop();
+    right = this.getRight();
+    bottom = this.getBottom();
+    var width, hight;
     if (!b) {
         b = this.isChanged()
     }
-    for (var e in this._areas) {
-        var c = this._areas[e];
-        switch (c.getDockStyle()) {
+    for (var areasKey in this._areas) {
+        var area = this._areas[areasKey];
+        switch (area.getDockStyle()) {
             case ChartArea.DockStyle.left:
-                j = c.getMeasuredWidth();
-                c.layout(d, g, d + j, a, b);
-                d += j;
+                width = area.getMeasuredWidth();
+                area.layout(left, top, left + width, bottom, b);
+                left += width;
                 break;
             case ChartArea.DockStyle.Top:
-                f = c.getMeasuredHeight();
-                c.layout(d, g, k, g + f, b);
-                g += f;
+                hight = area.getMeasuredHeight();
+                area.layout(left, top, right, top + hight, b);
+                top += hight;
                 break;
             case ChartArea.DockStyle.Right:
-                j = c.getMeasuredWidth();
-                c.layout(k - j, g, k, a, b);
-                k -= j;
+                width = area.getMeasuredWidth();
+                area.layout(right - width, top, right, bottom, b);
+                right -= width;
                 break;
             case ChartArea.DockStyle.Bottom:
-                f = c.getMeasuredHeight();
-                c.layout(d, a - f, k, a, b);
-                a -= f;
+                hight = area.getMeasuredHeight();
+                area.layout(left, bottom - hight, right, bottom, b);
+                bottom -= hight;
                 break;
             case ChartArea.DockStyle.Fill:
-                c.layout(d, g, k, a, b);
-                d = k;
-                g = a;
+                area.layout(left, top, right, bottom, b);
+                left = right;
+                top = bottom;
                 break
         }
     }
     this.setChanged(false)
 };
-DockableLayout.prototype.drawGrid = function (c) {
-    var j = ChartManager.getInstance();
-    var e = j.getTheme(this.getFrameName());
-    var d = this.getLeft();
-    var g = this.getTop();
-    var h = this.getRight();
-    var a = this.getBottom();
-    c.fillStyle = e.getColor(this._gridColor);
-    for (var f in this._areas) {
-        var b = this._areas[f];
-        switch (b.getDockStyle()) {
+
+/**
+ *
+ * @param pen
+ */
+DockableLayout.prototype.drawGrid = function (pen) {
+    var instance = ChartManager.getInstance();
+    var theme = instance.getTheme(this.getFrameName());
+    var left = this.getLeft();
+    var top = this.getTop();
+    var right = this.getRight();
+    var bottom = this.getBottom();
+    pen.fillStyle = theme.getColor(this._gridColor);
+    for (var areasKey in this._areas) {
+        var area = this._areas[areasKey];
+        switch (area.getDockStyle()) {
             case ChartArea.DockStyle.Left:
-                c.fillRect(b.getRight(), g, 1, a - g);
-                d += b.getWidth();
+                pen.fillRect(area.getRight(), top, 1, bottom - top);
+                left += area.getWidth();
                 break;
             case ChartArea.DockStyle.Top:
-                c.fillRect(d, b.getBottom(), h - d, 1);
-                g += b.getHeight();
+                pen.fillRect(left, area.getBottom(), right - left, 1);
+                top += area.getHeight();
                 break;
             case ChartArea.DockStyle.Right:
-                c.fillRect(b.getLeft(), g, 1, a - g);
-                h -= b.getWidth();
+                pen.fillRect(area.getLeft(), top, 1, bottom - top);
+                right -= area.getWidth();
                 break;
             case ChartArea.DockStyle.Bottom:
-                c.fillRect(d, b.getTop(), h - d, 1);
-                a -= b.getHeight();
+                pen.fillRect(left, area.getTop(), right - left, 1);
+                bottom -= area.getHeight();
                 break
         }
     }
 };
+
 var ChartManager = create_class();
 ChartManager.DrawingTool = {
     Cursor: 0,
@@ -2461,28 +2503,34 @@ ChartManager.prototype.__construct = function () {
     this._mainContext = null;
     this._overlayContext = null
 };
-ChartManager.prototype.redraw = function (a, b) {
-    if (a == undefined || b) {
-        a = "All"
+
+/**
+ * 重画
+ * @param area
+ * @param b
+ */
+ChartManager.prototype.redraw = function (area, b) {
+    if (area == undefined || b) {
+        area = "All"
     }
-    if (a == "All" || a == "MainCanvas") {
+    if (area == "All" || area == "MainCanvas") {
         if (b) {
             this.getFrame("frame0").setChanged(true)
         }
         this.layout(this._mainContext, "frame0", 0, 0, this._mainCanvas.width, this._mainCanvas.height);
         this.drawMain("frame0", this._mainContext)
     }
-    if (a == "All" || a == "OverlayCanvas") {
+    if (area == "All" || area == "OverlayCanvas") {
         this._overlayContext.clearRect(0, 0, this._overlayCanvas.width, this._overlayCanvas.height);
         this.drawOverlay("frame0", this._overlayContext)
     }
 };
-ChartManager.prototype.bindCanvas = function (b, a) {
-    if (b == "main") {
+ChartManager.prototype.bindCanvas = function (area, a) {
+    if (area == "main") {
         this._mainCanvas = a;
         this._mainContext = a.getContext("2d")
     } else {
-        if (b == "overlay") {
+        if (area == "overlay") {
             this._overlayCanvas = a;
             this._overlayContext = a.getContext("2d");
             if (this._captureMouseWheelDirectly) {
@@ -2800,6 +2848,13 @@ ChartManager.prototype.setFrameMousePos = function (b, c, a) {
         y: a
     }
 };
+
+/**
+ * 画显示区
+ * @param c
+ * @param d
+ * @param f
+ */
 ChartManager.prototype.drawArea = function (c, d, f) {
     var g = d.getNameObject().getCompAt(2);
     if (g == "timeline") {
@@ -2845,73 +2900,87 @@ ChartManager.prototype.drawAreaOverlay = function (a, b) {
     }
     this.drawArea(a, b, d)
 };
-ChartManager.prototype.drawMain = function (a, c) {
+
+/**
+ * 画主图
+ * @param areaFrameName
+ * @param c
+ */
+ChartManager.prototype.drawMain = function (areaFrameName, c) {
     drawn = false;
     if (!drawn) {
-        for (var d in this._areas) {
-            if (this._areas[d].getFrameName() == a && !is_instance(this._areas[d], ChartAreaGroup)) {
-                this.drawAreaMain(c, this._areas[d])
+        for (var areaIndex in this._areas) {
+            if (this._areas[areaIndex].getFrameName() == areaFrameName && !is_instance(this._areas[areaIndex], ChartAreaGroup)) {
+                this.drawAreaMain(c, this._areas[areaIndex])
             }
         }
     }
-    var f;
-    for (var b in this._timelines) {
-        f = this._timelines[b];
-        if (f.getFrameName() == a) {
-            f.setUpdated(false)
+    var line;
+    for (var lineIndex in this._timelines) {
+        line = this._timelines[lineIndex];
+        if (line.getFrameName() == areaFrameName) {
+            line.setUpdated(false)
         }
     }
-    for (var b in this._ranges) {
-        f = this._ranges[b];
-        if (f.getFrameName() == a) {
-            f.setUpdated(false)
+    for (var rangesKey in this._ranges) {
+        line = this._ranges[rangesKey];
+        if (line.getFrameName() == areaFrameName) {
+            line.setUpdated(false)
         }
     }
-    for (var b in this._areas) {
-        f = this._areas[b];
-        if (f.getFrameName() == a) {
-            f.setChanged(false)
+    for (var areasKey in this._areas) {
+        line = this._areas[areasKey];
+        if (line.getFrameName() == areaFrameName) {
+            line.setChanged(false)
         }
     }
 };
-ChartManager.prototype.drawOverlay = function (a, b) {
-    for (var d in this._areas) {
-        var c = this._areas[d];
-        if (is_instance(c, ChartAreaGroup)) {
-            if (c.getFrameName() == a) {
-                c.drawGrid(b)
+ChartManager.prototype.drawOverlay = function (areaFrameName, b) {
+    for (var areasKey in this._areas) {
+        var area = this._areas[areasKey];
+        if (is_instance(area, ChartAreaGroup)) {
+            if (area.getFrameName() == areaFrameName) {
+                area.drawGrid(b)
             }
         }
     }
-    for (var d in this._areas) {
-        var c = this._areas[d];
-        if (is_instance(c, ChartAreaGroup) == false) {
-            if (c.getFrameName() == a) {
-                this.drawAreaOverlay(b, c)
+    for (var areasKey1 in this._areas) {
+        var area1 = this._areas[areasKey1];
+        if (is_instance(area1, ChartAreaGroup) == false) {
+            if (area1.getFrameName() == areaFrameName) {
+                this.drawAreaOverlay(b, area1)
             }
         }
     }
 };
-ChartManager.prototype.updateData = function (a, g) {
-    var d = this.getDataSource(a);
-    if (d == undefined) {
+
+/**
+ * 更新数据
+ * @param a
+ * @param data K线数据
+ * @returns {boolean}
+ */
+ChartManager.prototype.updateData = function (a, data) {
+    console.log("_dataSources", this._dataSources);
+    var dataSource = this.getDataSource(a);
+    if (dataSource == undefined) {
         return
     }
-    if (g != null) {
-        if (!d.update(g)) {
+    if (data != null) {
+        if (!dataSource.update(data)) {
             return false
         }
-        if (d.getUpdateMode() == DataSource.UpdateMode.DoNothing) {
+        if (dataSource.getUpdateMode() == DataSource.UpdateMode.DoNothing) {
             return true
         }
     } else {
-        d.setUpdateMode(DataSource.UpdateMode.Refresh)
+        dataSource.setUpdateMode(DataSource.UpdateMode.Refresh)
     }
     var j = this.getTimeline(a);
     if (j != undefined) {
         j.update()
     }
-    if (d.getDataCount() < 1) {
+    if (dataSource.getDataCount() < 1) {
         return true
     }
     var k = [".main", ".secondary"];
@@ -2934,33 +3003,33 @@ ChartManager.prototype.updateData = function (a, g) {
     }
     return true
 };
-ChartManager.prototype.updateRange = function (a) {
-    var d = this.getDataSource(a);
-    if (d.getDataCount() < 1) {
+ChartManager.prototype.updateRange = function (areaSourceName) {
+    var dataSource = this.getDataSource(areaSourceName);
+    if (dataSource.getDataCount() < 1) {
         return
     }
     var k = [".main", ".secondary"];
-    var b, h;
-    for (var c in this._areas) {
-        b = this._areas[c];
-        if (is_instance(b, ChartAreaGroup)) {
+    var area, areaName;
+    for (var areasKey in this._areas) {
+        area = this._areas[areasKey];
+        if (is_instance(area, ChartAreaGroup)) {
             continue
         }
-        if (b.getDataSourceName() != a) {
+        if (area.getDataSourceName() != areaSourceName) {
             continue
         }
-        h = b.getName();
+        areaName = area.getName();
         for (var f = 0; f < k.length; f++) {
-            var e = this.getDataProvider(h + k[f]);
+            var e = this.getDataProvider(areaName + k[f]);
             if (e != undefined) {
                 e.updateRange()
             }
         }
-        var j = this.getTimeline(a);
-        if (j != undefined && j.getMaxItemCount() > 0) {
-            var g = this.getRange(h);
-            if (g != undefined) {
-                g.update()
+        var timeline = this.getTimeline(areaSourceName);
+        if (timeline != undefined && timeline.getMaxItemCount() > 0) {
+            var range = this.getRange(areaName);
+            if (range != undefined) {
+                range.update()
             }
         }
     }
@@ -3031,23 +3100,31 @@ ChartManager.prototype.showCrossCursor = function (b, a, d) {
     }
     return false
 };
+/**
+ * 隐藏鼠标光标
+ * @param a
+ */
 ChartManager.prototype.hideCrossCursor = function (a) {
     if (a != null) {
-        for (var c in this._timelines) {
-            var b = this._timelines[c];
-            if (b != a) {
-                b.unselect()
+        for (var timelinesKey in this._timelines) {
+            var timeline = this._timelines[timelinesKey];
+            if (timeline != a) {
+                timeline.unselect()
             }
         }
     } else {
-        for (var c in this._timelines) {
-            this._timelines[c].unselect()
+        for (var timelinesKey1 in this._timelines) {
+            this._timelines[timelinesKey1].unselect()
         }
     }
-    for (var c in this._ranges) {
-        this._ranges[c].unselect()
+    for (var rangesKey in this._ranges) {
+        this._ranges[rangesKey].unselect()
     }
 };
+
+/**
+ * 清除高亮突出显示
+ */
 ChartManager.prototype.clearHighlight = function () {
     if (this._highlightedFrame != null) {
         this._highlightedFrame.highlight(null);
@@ -4163,89 +4240,102 @@ MainDataSource.prototype.getLastDate = function () {
 MainDataSource.prototype.getDataAt = function (a) {
     return this._dataItems[a]
 };
-MainDataSource.prototype.update = function (c) {
+MainDataSource.prototype.update = function (data) {
     this._updatedCount = 0;
     this._appendedCount = 0;
     this._erasedCount = 0;
-    var h = this._dataItems.length;
-    if (h > 0) {
-        var g = h - 1;
-        var l = this._dataItems[g];
-        var j, f, b = c.length;
-        for (f = 0; f < b; f++) {
-            j = c[f];
-            if (j[0] == l.date) {//时间相同不绘点
-                this.setUpdateMode(DataSource.UpdateMode.DoNothing);
-                return false;
+    var allLength = this._dataItems.length;
+    if (allLength > 0) {
+        var lastKLine = this._dataItems[allLength - 1];
+        var da, i, newDataLength = data.length;
+        for (i = 0; i < newDataLength; i++) {
+            da = data[i];
+            console.log("da=======", da);
+            console.log("lastKLine=======", lastKLine);
+            if (da.id == lastKLine.date) {//时间相同不绘点
+                this.setUpdateMode(DataSource.UpdateMode.Update);
+                this.setUpdateMode(DataSource.UpdateMode.Update);
+                this._dataItems[allLength - 1] = {
+                    date: da.id,
+                    open: da.open,
+                    high: da.high,
+                    low: da.low,
+                    close: da.close,
+                    volume: da.vol
+                };
+                this._updatedCount++
+                return true;
             }
             //如果当前时间点小于图现在最新点，则不绘点
-            if (l.date > j[0]) {
+            if (lastKLine.date > da.id) {
                 this.setUpdateMode(DataSource.UpdateMode.DoNothing);
                 return false;
             }
             //如果点的时间大于当前时间，则不绘点
             var timestamp = Date.parse(new Date()); //当前时间戳
-            if (j[0] > timestamp) {
+            if (da.id > timestamp) {
                 this.setUpdateMode(DataSource.UpdateMode.DoNothing);
                 return false;
             }
             //推送点绘制
             this.setUpdateMode(DataSource.UpdateMode.Append);
-            for (; f < b; f++, this._appendedCount++) {
-                j = c[f];
+
+            console.log("_dataItems", data);
+            for (; i < newDataLength; i++, this._appendedCount++) {
+                da = data[i];
                 this._dataItems.push({
-                    date: j[0],
-                    open: j[1],
-                    high: j[2],
-                    low: j[3],
-                    close: j[4],
-                    volume: j[5]
+                    date: da.id,
+                    open: da.open,
+                    high: da.high,
+                    low: da.low,
+                    close: da.close,
+                    volume: da.vol
                 });
             }
             return true;
-            //if (j[0] == l.date) {
-            //    if (l.open == j[1] && l.high == j[2] && l.low == j[3] && l.close == j[4] && l.volume == j[5]) {
+            //if (da[0] == lastKLine.date) {
+            //    if (lastKLine.open == da[1] && lastKLine.high == da[2] && lastKLine.low == da[3] && lastKLine.close == da[4] && lastKLine.volume == da[5]) {
             //        this.setUpdateMode(DataSource.UpdateMode.DoNothing)
-            //    } else {                           
+            //    } else {
             //        this.setUpdateMode(DataSource.UpdateMode.Update);
             //        this._dataItems[g] = {
-            //            date: j[0],
-            //            open: j[1],
-            //            high: j[2],
-            //            low: j[3],
-            //            close: j[4],
-            //            volume: j[5]
+            //            date: da[0],
+            //            open: da[1],
+            //            high: da[2],
+            //            low: da[3],
+            //            close: da[4],
+            //            volume: da[5]
             //        };
             //        this._updatedCount++
             //    }
-            //    f++;               
-            //    if (f < b) {
+            //    i++;
+            //    if (i < newDataLength) {
             //        this.setUpdateMode(DataSource.UpdateMode.Append);
-            //        for (; f < b; f++, this._appendedCount++) {
-            //            j = c[f];
+            //        for (; i < newDataLength; i++, this._appendedCount++) {
+            //            da = data[i];
             //            this._dataItems.push({
-            //                date: j[0],
-            //                open: j[1],
-            //                high: j[2],
-            //                low: j[3],
-            //                close: j[4],
-            //                volume: j[5]
+            //                date: da[0],
+            //                open: da[1],
+            //                high: da[2],
+            //                low: da[3],
+            //                close: da[4],
+            //                volume: da[5]
             //            })
             //        }
             //    }
             //    return true
             //}
         }
-        if (b < 1000) {
+        if (newDataLength < 1000) {
             this.setUpdateMode(DataSource.UpdateMode.DoNothing);
             return false
         }
     }
     this.setUpdateMode(DataSource.UpdateMode.Refresh);
     this._dataItems = [];
-    var k, a, j, f, b = c.length;
+    var k, a, j, f, b = data.length;
     for (f = 0; f < b; f++) {
-        j = c[f];
+        j = data[f];
         for (a = 1; a <= 4; a++) {
             k = this.calcDecimalDigits(j[a]);
             if (this._decimalDigits < k) {
@@ -4258,12 +4348,12 @@ MainDataSource.prototype.update = function (c) {
             continue;
         }
         this._dataItems.push({
-            date: j[0],
-            open: j[1],
-            high: j[2],
-            low: j[3],
-            close: j[4],
-            volume: j[5]
+            date: j.id,
+            open: j.open,
+            high: j.high,
+            low: j.low,
+            close: j.close,
+            volume: j.vol
         })
     }
     return true
@@ -4500,12 +4590,12 @@ var DarkTheme = create_class(Theme);
 //黑色背景
 DarkTheme.prototype.__construct = function () {
     this._colors = [];
-    this._colors[Theme.Color.Positive] = "#FF3232";//涨价 红色
-    this._colors[Theme.Color.Negative] = "#00ba53";//跌价 绿色
+    this._colors[Theme.Color.Positive] = "#4db872";//涨价 绿色
+    this._colors[Theme.Color.Negative] = "#ee6560";//跌价 红色
     this._colors[Theme.Color.PositiveDark] = "#004718";
     this._colors[Theme.Color.NegativeDark] = "#3b0e08";
     this._colors[Theme.Color.Unchanged] = "#fff";
-    this._colors[Theme.Color.Background] = "#0a0a0a";
+    this._colors[Theme.Color.Background] = "#0c1929";
     this._colors[Theme.Color.Cursor] = "#aaa";
     this._colors[Theme.Color.RangeMark] = "#f9ee30";
     this._colors[Theme.Color.Indicator0] = "#ddd";
@@ -5234,7 +5324,7 @@ CandlestickHLCPlotter.prototype.Draw = function (c) {
     if (w.length > 0) {
         c.fillStyle = y.getColor(Theme.Color.Positive);
         Plotter.createRectangles(c, w);
-        c.fill();//实心柱     
+        c.fill();//实心柱
     }
     if (f.length > 0) {
         c.strokeStyle = y.getColor(Theme.Color.Positive);
@@ -7978,6 +8068,11 @@ CToolPlotter.prototype.getAreaPos = function () {
         bottom: Math.floor(a.getBottom())
     }
 };
+
+/**
+ * 更新
+ * @param a
+ */
 CToolPlotter.prototype.updateDraw = function (a) {
     a.strokeStyle = this.theme.getColor(Theme.Color.LineColorNormal);
     this.draw(a);
@@ -8062,6 +8157,13 @@ DrawArrowLinesPlotter.prototype.__construct = function (a, b) {
     this.ctrlPts = new Array(new Array(this.ctrlPtsNum), new Array(2));
     this.getCtrlPts()
 };
+
+/**
+ * 画箭头
+ * @param c
+ * @param b
+ * @param f
+ */
 DrawArrowLinesPlotter.prototype.drawArrow = function (c, b, f) {
     var d = this.lenBetweenPts(b, f);
     var i = [f.x - b.x, f.y - b.y];
@@ -8828,8 +8930,7 @@ function queryString(url, name) {
     if (name == null || name == "" || name == undefined) {
         var AllVars = url;//.search.substring(1);
         return AllVars.split("&");
-    }
-    else {
+    } else {
         var AllVars = url;//.search.substring(1);
         var Vars = AllVars.split("&");
         for (i = 0; i < Vars.length; i++) {
@@ -8841,190 +8942,60 @@ function queryString(url, name) {
 };
 
 
-//測試用
-//上一次收盤價
-var lastClosePrice = 0;
-
-/*//改寫為js方法，使用者要自己写后台请求，如ajax
-var RequestData = function (showLoading) {
-    //显示加载提示
-    $("#chart_loading").addClass("activated");
-
-    //參數
-    var canshu = GLOBAL_VAR;
-    var size = queryString(canshu.requestParam, "size");
-
-    //當前時間戳
-    var timestamp = Date.parse(new Date());
-
-    var data = {
-        "des": "注释",
-        "isSuc": true,
-        "datas": {
-            "USDCNY": 6.83,
-            "contractUnit": "BTC",
-            "data": [[1499875200000, 16580, 16700, 16530, 16700, 12.6415], [1499875200000, 16680, 16200, 16730, 16900, 9.6415], [1499875200000, 16552, 16980, 16130, 16400, 17.6415], [1499875200000, 16580, 16700, 16530, 16700, 15.6415], [1499875200000, 16580, 16700, 16530, 16700, 36.6415], [1499875200000, 16580, 16700, 16530, 16700, 85.6415], [1499918040000, 16630, 16784, 16582, 16710, 42.6415], [1499918280000, 16580, 16700, 16530, 16700, 32.6415], [1499918400000, 16580, 16700, 16530, 16700, 22.6415], [1499918760000, 16580, 16700, 16530, 16700, 17.6415], [1499919000000, 16548, 16860, 16430, 16800, 19.6415]],
-            "marketName": "币柜网",
-            "moneyType": "CNY",
-            "symbol": "btc38btccny",
-            "url": "官网地址",
-            "topTickers": []
-        }
+let SetRequestData = function (data, showLoading, isFirst) {
+    window.clearTimeout(GLOBAL_VAR.TimeOutId);
+    if (showLoading == true) {
+        $("#chart_loading").addClass("activated")
     }
-
-    //生產即時點價格
-    //randomNum
-    //最高價
-    var hight = randomNum(18000, 25000);
-    //最低價
-    var low = randomNum(18000, hight);
-    //开盘价
-    var open = lastClosePrice;
-    if (lastClosePrice == 0) {
-        open = randomNum(18000, hight);
+    // debugger
+    if (!data) {
+        return
     }
-    console.log("开盘价" + open);
-    //成交量
-    var volume = randomNum(20, 100);
+    data.forEach((item) => {
+        var random = false;
 
-    //收盘价
-    var close = randomNum(low, hight);
-    lastClosePrice = close;
-    console.log("收盘价" + close);
+        var random1 = !random ? 0 : parseInt(500 * (Math.random()) - 200)
+        var random2 = !random ? 0 : parseInt(500 * (Math.random()) - 200)
+        var random3 = !random ? 0 : parseInt(500 * (Math.random()) - 200)
+        var random4 = !random ? 0 : parseInt(500 * (Math.random()) - 200)
+        var random5 = !random ? 0 : parseInt(500 * (Math.random()))
 
-    var jishi = {
-        "des": "注释",
-        "isSuc": true,
-        "datas": {
-            "USDCNY": 6.83,
-            "contractUnit": "BTC",
-            "data": [[timestamp, open, hight, low, close, volume]],
-            "marketName": "币柜网",
-            "moneyType": "CNY",
-            "symbol": "btc38btccny",
-            "url": "官网地址",
-            "topTickers": []
-        }
-    }
-
-    //歷史數據
-    if (size > 0) {
-        GLOBAL_VAR.KLineData = data.datas.data;
-        console.log("歷史數據");
+        item.close = parseFloat(item.close) + random1;
+        item.open = parseFloat(item.open) + random2;
+        item.high = parseFloat(item.high) + random3;
+        item.low = parseFloat(item.low) + random4;
+        item.vol = parseFloat(item.vol) + random5;
+        item.id = parseInt(item.id) * 1000;
+    });
+    if (isFirst) {
+        GLOBAL_VAR.KLineAllData = data;
     } else {
-        GLOBAL_VAR.KLineData = jishi.datas.data;
-        console.log("即時數據");
+        for (var i = GLOBAL_VAR.KLineAllData.length - 1; i >= 0; i--) {
+            var da = GLOBAL_VAR.KLineAllData[i];
+            if (da.id == data[0].id) {
+                GLOBAL_VAR.KLineAllData[i] = data[0];
+                break;
+            } else {
+                if (data[0].id > da.id) {
+                    GLOBAL_VAR.KLineAllData.push(data[0]);
+                    break;
+                }
+            }
+        }
     }
-
+    console.log("GLOBAL_VAR.data", data);
+    GLOBAL_VAR.market_from_name = "BTCUSDT";
     var chart = ChartManager.getInstance().getChart();
-
+    // chart._contract_unit = json.datas.contractUnit;
+    chart._money_type = "USDT";
+    chart._usd_cny_rate = 6.89;
     chart.setTitle();
-
-    GLOBAL_VAR.chartMgr.updateData("frame0.k0", GLOBAL_VAR.KLineData);
+    GLOBAL_VAR.chartMgr.updateData("frame0.k0", data)
     clear_refresh_counter();
-
-    //移除加載提示
+    //自循环请求点，测试用，页面启动后会每隔8秒请求一次后台点数据（一个点）
     $("#chart_loading").removeClass("activated");
-
-    ChartManager.getInstance().redraw("All", false);
-}*/
-
-
-//正式代码
-var RequestData = function(showLoading) {
-   AbortRequest();
-   window.clearTimeout(GLOBAL_VAR.TimeOutId);
-   if (showLoading == true) {
-       $("#chart_loading").addClass("activated")
-   }
-   // debugger
-   $(document).ready(GLOBAL_VAR.G_HTTP_REQUEST = $.ajax({
-       type: "post",
-       url: GLOBAL_VAR.url,
-       dataType: "json",
-       data: GLOBAL_VAR.requestParam,
-       timeout: 30000,
-       created: Date.now(),
-       beforeSend: function() {
-           this.time = GLOBAL_VAR.time_type;
-           this.market = GLOBAL_VAR.market_from
-       },
-       success: function (json) {
-           // debugger
-           if (GLOBAL_VAR.G_HTTP_REQUEST) {
-               console.log(json,"--------------");
-               if (this.time != GLOBAL_VAR.time_type || this.market != GLOBAL_VAR.market_from) {
-                   GLOBAL_VAR.TimeOutId = setTimeout(RequestData, 1000);
-                   return
-               }
-               if (!json) {
-                   return
-               }
-               if (!json.isSuc) {
-                   //alert(json.des);
-                   //kline.refreshPage(json.datas.ecode == 101 ? null: GLOBAL_VAR.market_from);
-                   return
-               }
-               GLOBAL_VAR.market_from_name = json.datas.marketName;
-               var chart = ChartManager.getInstance().getChart();
-               chart._contract_unit = json.datas.contractUnit;
-               chart._money_type = json.datas.moneyType;
-               chart._usd_cny_rate = json.datas.USDCNY;
-               chart.setTitle();
-               //kline.setMarketShow(GLOBAL_VAR.market_from_name, chart._contract_unit, chart._money_type, json.datas.url);
-               //kline.setTopTickers(json.datas.topTickers);
-               //GLOBAL_VAR.KLineData = eval(json.datas.data);
-               GLOBAL_VAR.KLineData = json.datas.data;
-               try {
-                   if (!GLOBAL_VAR.chartMgr.updateData("frame0.k0", GLOBAL_VAR.KLineData)) {
-                       //GLOBAL_VAR.requestParam = setHttpRequestParam(GLOBAL_VAR.market_from, GLOBAL_VAR.time_type, GLOBAL_VAR.limit, null);
-                       //推送点下次请求
-                       //GLOBAL_VAR.TimeOutId = setTimeout(RequestData, 2*1000);//可用
-                       return
-                   }
-                   clear_refresh_counter()
-               } catch(err) {
-                   if (err == "data error") {
-                       GLOBAL_VAR.requestParam = setHttpRequestParam(GLOBAL_VAR.market_from, GLOBAL_VAR.time_type, GLOBAL_VAR.limit, null);
-                       GLOBAL_VAR.TimeOutId = setTimeout(RequestData, 1000);
-                       return
-                   }
-               }
-               //自循环请求点，测试用，页面启动后会每隔8秒请求一次后台点数据（一个点）
-               //GLOBAL_VAR.TimeOutId = setTimeout(TwoSecondThread, 8 * 1000);
-               $("#chart_loading").removeClass("activated");
-               ChartManager.getInstance().redraw("All", false)
-           }
-       },
-       error: function(xhr, textStatus, errorThrown) {
-           if (xhr.status == 200 && xhr.readyState == 4) {
-               return
-           }
-           GLOBAL_VAR.TimeOutId = setTimeout(function() {
-               RequestData(true)
-           },
-           1000)
-       },
-       complete: function() {
-           GLOBAL_VAR.G_HTTP_REQUEST = null
-       }
-   }))
+    ChartManager.getInstance().redraw("All", false)
 };
-function AbortRequest() {
-    if (GLOBAL_VAR.G_HTTP_REQUEST && GLOBAL_VAR.G_HTTP_REQUEST.readyState != 4) {
-        GLOBAL_VAR.G_HTTP_REQUEST.abort()
-    }
-}
-
-function TwoSecondThread() {
-    var a = GLOBAL_VAR.chartMgr.getDataSource("frame0.k0").getLastDate();
-    if (a == -1) {
-        GLOBAL_VAR.requestParam = setHttpRequestParam(GLOBAL_VAR.market_from, GLOBAL_VAR.time_type, GLOBAL_VAR.limit, null)
-    } else {
-        GLOBAL_VAR.requestParam = setHttpRequestParam(GLOBAL_VAR.market_from, GLOBAL_VAR.time_type, null, a.toString())
-    }
-    RequestData()
-}
 
 function readCookie() {
     ChartSettings.get();
